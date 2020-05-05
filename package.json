@@ -1,0 +1,20 @@
+{
+  "name": "strava-data",
+  "version": "2.0.0",
+  "description": "Export Strava data to Google Sheets using Google Apps Script",
+  "main": "index.js",
+  "scripts": {
+	"build": "ls src/* | xargs -I {} cat {} > Code.gs",
+	"clean": "rm -f Code.gs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swkasica/strava-data.git"
+  },
+  "author": "Stephen Kasica <kasica@alumni.ubc.ca>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/swkasica/strava-data/issues"
+  },
+  "homepage": "https://github.com/swkasica/strava-data#readme"
+}
