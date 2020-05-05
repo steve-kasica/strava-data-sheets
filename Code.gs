@@ -142,7 +142,51 @@ function getDuration_(dur) {
   
   return Utilities.formatString("%d:%02d:%02d", hrs, mins, secs);
 }  //
-// Code.gs
+// Date.gs
+// ============================================================================
+// Custom methods for working with dates
+//
+
+Date.prototype.toEpoch = function() {
+  // Convert date to Epoch time, the number of seconds since January 1, 1970.
+  // Return {Number} Unix Epoch timestamp for this date
+  return this.getTime() / 1000;
+}
+
+Date.prototype.MMDDYYYY = function() {
+  // Export date in American date format
+  // Return {String} date in MM/DD/YYYY format
+  var month = this.getMonth() + 1;
+  var date = this.getDate();
+  var year = this.getFullYear();
+  return month + '/' + date + '/' + year;
+}
+
+Date.prototype.incDate = function(days) {
+  // Increment date by one day
+  // Return {Date, this} for chaining
+  this.setDate(this.getDate() + days);
+  return this;
+}
+
+Date.prototype.getWeekStart = function() {
+  // Get the first day of the week given an arbitrary day.
+  // Return {Date} A new date object
+  var d = new Date(this.getTime());
+  var monday = 1;
+  while (d.getDay() !== monday) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+
+Date.prototype.minusYears = function(x) {
+  // Subtract x years from the current date
+  // Return {Date, this} this Date object instance, for chaining
+  this.setFullYear(this.getFullYear() - x);
+  return this;
+}//
+// Main.gs
 // =================================================================================
 //
 
@@ -313,50 +357,78 @@ function resolveActivityFragments() {
   }
   
 }//
-// Date.gs
-// ============================================================================
-// Custom methods for working with dates
+// server.gs
+// --------------------------------------------------------------
+// A script full of function for interacting with the Strava API.
+// Sensitive variables such as CLIENT_SCECRET are not included
+//
 //
 
-Date.prototype.toEpoch = function() {
-  // Convert date to Epoch time, the number of seconds since January 1, 1970.
-  // Return {Number} Unix Epoch timestamp for this date
-  return this.getTime() / 1000;
-}
-
-Date.prototype.MMDDYYYY = function() {
-  // Export date in American date format
-  // Return {String} date in MM/DD/YYYY format
-  var month = this.getMonth() + 1;
-  var date = this.getDate();
-  var year = this.getFullYear();
-  return month + '/' + date + '/' + year;
-}
-
-Date.prototype.incDate = function(days) {
-  // Increment date by one day
-  // Return {Date, this} for chaining
-  this.setDate(this.getDate() + days);
-  return this;
-}
-
-Date.prototype.getWeekStart = function() {
-  // Get the first day of the week given an arbitrary day.
-  // Return {Date} A new date object
-  var d = new Date(this.getTime());
-  var monday = 1;
-  while (d.getDay() !== monday) {
-    d.setDate(d.getDate() - 1);
+function authenticate() {
+  // Authorizes and makes a request to the Strava API.
+  var service = getService_();
+  if (service.hasAccess()) {
+    var url = 'https://www.strava.com/api/v3/activities';
+    var response = UrlFetchApp.fetch(url, {
+      headers: {
+        Authorization: 'Bearer ' + service.getAccessToken()
+      }
+    });
+    var result = JSON.parse(response.getContentText());
+    Logger.log(JSON.stringify(result, null, 2));
+  } else {
+    var authorizationUrl = service.getAuthorizationUrl();
+    Logger.log('Open the following URL and re-run the script: %s',
+        authorizationUrl);
   }
-  return d;
 }
 
-Date.prototype.minusYears = function(x) {
-  // Subtract x years from the current date
-  // Return {Date, this} this Date object instance, for chaining
-  this.setFullYear(this.getFullYear() - x);
-  return this;
-}//
+
+function reset() {
+  // Reset the authorization state, so that it can be re-tested.
+  var service = getService_();
+  service.reset();
+}
+
+function getService_() {
+   // Configures the service.
+   // Three required and optional parameters are not specified
+   // because the library creates the authorization URL with them
+   // automatically: `redirect_url`, `response_type`, and
+   // `state`.
+  var id = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_ID');
+  var secret = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_SECRET');
+  return OAuth2.createService('Strava')
+      // Set the endpoint URLs.
+      .setAuthorizationBaseUrl('https://www.strava.com/oauth/authorize')
+      .setTokenUrl('https://www.strava.com/oauth/token')
+
+      // Set the client ID and secret.
+      .setClientId(id)
+      .setClientSecret(secret)
+      
+//      .setScope('https://www.strava.com/oauth/authorize')
+      .setParam('scope', 'activity:read_all')
+
+      // Set the name of the callback function that should be invoked to
+      // complete the OAuth flow.
+      .setCallbackFunction('authCallback_')
+
+      // Set the property store where authorized tokens should be persisted.
+      .setPropertyStore(PropertiesService.getUserProperties());
+}
+
+function authCallback_(request) {
+  // Handles the OAuth callback.
+  var service = getService_();
+  var authorized = service.handleCallback(request);
+  if (authorized) {
+    return HtmlService.createHtmlOutput('Success!');
+  } else {
+    return HtmlService.createHtmlOutput('Denied.');
+  }
+}
+//
 // Strava.gs
 // ===============================================================================================
 // A small API for Strava's web service
