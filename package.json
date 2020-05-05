@@ -1,11 +1,11 @@
 {
   "name": "strava-data",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Export Strava data to Google Sheets using Google Apps Script",
   "main": "index.js",
   "scripts": {
-	"build": "ls src/* | xargs -I {} cat {} > Code.gs",
-	"clean": "rm -f Code.gs"
+    "build": "ls src/* | xargs -I {} cat {} > Code.gs",
+    "clean": "rm -f Code.gs"
   },
   "repository": {
     "type": "git",
