@@ -4,12 +4,14 @@
 // A small API for Strava's web service
 
 //
-var Strava = (function(service) {
+var Strava = (function() {
   var base = 'https://www.strava.com/api/v3/';
-  var accessToken = service.getAccessToken();
+  var tokenUrl = 'https://www.strava.com/oauth/token';
   
-  // Public methods
+  // Public methods and attributes
   // ---------------------------------------------------------------------------------------------
+  
+  this.service = getService_();
   
   this.getActivity = function(id) {
     // Get an individual activity by Strava activity ID.
@@ -44,7 +46,7 @@ var Strava = (function(service) {
    
     var res = UrlFetchApp.fetch(url, {
       headers: {
-        Authorization: 'Bearer ' + accessToken
+        Authorization: 'Bearer ' + service.getAccessToken()
       },
       muteHttpExceptions: false
     });
@@ -71,21 +73,84 @@ var Strava = (function(service) {
     
     return body;
   }
+  
+  this.authorize = function() {
+    var authorizationUrl = this.service.getAuthorizationUrl();
+    Logger.log('Authorization URL: \n%s\n\n', this.service.getAuthorizationUrl());
+    throw new Error("Check Logger for authorization URL");
+  }
 
   return this;
   
   // Private helper functions
   // ---------------------------------------------------------------------------------------------
   
-  function fetch(url) {
-    // Make a request to the Strava API
-    //
-    var service = getService_();
-    return UrlFetchApp.fetch(url, {
-      headers: {
-        Authorization: 'Bearer ' + service.getAccessToken()
-      }
-    });
+//  function authenticate() {
+//    var service = getService_();
+//    if (service.hasAccess()) {
+//      var url = 'https://www.strava.com/api/v3/activities';
+//      var response = UrlFetchApp.fetch(url, {
+//        headers: {
+//          Authorization: 'Bearer ' + service.getAccessToken()
+//        }
+//      });
+//      var result = JSON.parse(response.getContentText());
+//      Logger.log(JSON.stringify(result, null, 2));
+//    } else {
+//      var authorizationUrl = service.getAuthorizationUrl();
+//      Logger.log('Open the following URL and re-run the script: %s',
+//          authorizationUrl);
+//    }
+//  }
+
+  /**
+   * Configures the service.
+   * Three required and optional parameters are not specified
+   * because the library creates the authorization URL with them
+   * automatically: `redirect_url`, `response_type`, and
+   * `state`.
+   */
+  function getService_() {
+    return OAuth2.createService('Strava')
+        // Set the endpoint URLs.
+        .setAuthorizationBaseUrl('https://www.strava.com/oauth/authorize')
+        .setTokenUrl(tokenUrl)
+  
+        // Set the client ID and secret.
+        .setClientId(CLIENT_ID)
+        .setClientSecret(CLIENT_SECRET)
+        
+        .setParam('scope', 'activity:read_all')
+  
+        // Set the name of the callback function that should be invoked to
+        // complete the OAuth flow.
+        .setCallbackFunction('authCallback_')
+  
+        // Set the property store where authorized tokens should be persisted.
+        .setPropertyStore(PropertiesService.getUserProperties());
+  }
+
+  /**
+   * Logs the redict URI to register.
+   */
+  function logRedirectUri() {
+    Logger.log(OAuth2.getRedirectUri());
   }
   
-})(getService_());
+  function fetch(url) {
+    // Make a request to the Strava API
+    var service = getService_();
+    if (service.hasAccess()) {
+      var res = UrlFetchApp.fetch(url, {
+        headers: {
+          Authorization: 'Bearer ' + service.getAccessToken()
+        }
+      });
+      return res;
+    } else {
+      // Need to authorize
+      this.authorize();
+    }
+  }
+  
+})();

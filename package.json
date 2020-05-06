@@ -4,7 +4,7 @@
   "description": "Export Strava data to Google Sheets using Google Apps Script",
   "main": "index.js",
   "scripts": {
-    "build": "ls src/* | xargs -I {} cat {} > Code.gs",
+    "build": "ls src/* | grep -v src/tests.gs | xargs -I {} cat {} > Code.gs",
     "clean": "rm -f Code.gs"
   },
   "repository": {

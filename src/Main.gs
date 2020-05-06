@@ -8,6 +8,8 @@
 //
 var SCRIPT_PROPS = PropertiesService.getScriptProperties();
 var SPREADSHEET = SpreadsheetApp.openById(SCRIPT_PROPS.getProperty('SHEET_ID'));
+var CLIENT_ID = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_ID');
+var CLIENT_SECRET = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_SECRET');
 var PREV_YEAR_TAB = 'Previous Year';
 
 // Main functions
@@ -169,4 +171,27 @@ function resolveActivityFragments() {
     
   }
   
+}
+
+// Functions for establishing a connection to Strava 
+// ----------------------------------------------------
+//
+
+function establishStravaConnection() {
+  // Initliazes Strava connection, only need to be run once
+  Strava.authorize();
+}
+
+function resetStravaConnection() {
+  Strava.service.reset();
+}
+
+function authCallback_(request) {
+  // Handles the OAuth callback
+  var authorized = Strava.service.handleCallback(request);
+  if (authorized) {
+    return HtmlService.createHtmlOutput('Success!');
+  } else {
+    return HtmlService.createHtmlOutput('Denied.');
+  }
 }

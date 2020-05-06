@@ -146,6 +146,15 @@ var tests = [
       this.isSuccess = (actual.getTime() === expected.getTime());
       return 'Actual: ' + actual + ', Expected: ' + expected;
     }
+  ),
+  
+  new Test_(
+    'Strava Connection',
+    'Connect to Strava',
+    function() {
+      this.isSuccess = Strava.service.hasAccess();
+      return 'Strava access = ' + this.isSuccess;
+    }
   )
 ];
 
