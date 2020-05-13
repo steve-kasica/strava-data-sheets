@@ -1,10 +1,10 @@
 //
-// Activity.gs
+// Activity_.gs
 // ===================================================================================================================
 // A class for representing Strava Activities as rows in the spreadsheet
 //
 
-var Activity = function(activity) {
+var Activity_ = function(activity) {
   // Initialization expects an object with the following properties:
   //   - start_date_local
   //   - type
@@ -18,9 +18,7 @@ var Activity = function(activity) {
 
   var self = this;
 
-  self.columns = ['CreatedAt', 'ActivityType', 'DistanceMeters', 'ElapsedTimeInSeconds', 
-                  'MovingTimeInSeconds', 'MovingDuration', 'TotalElevationGain', 
-                  'ActivityID', 'WeekStart', 'WeekEnd', 'WorkoutType'];
+  self.columns = DATA_VARIABLES;
   
   if (Array.isArray(activity)) {
     self.properties = initFromRow(activity);

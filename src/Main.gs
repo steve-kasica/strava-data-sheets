@@ -11,12 +11,75 @@ var SPREADSHEET = SpreadsheetApp.openById(SCRIPT_PROPS.getProperty('SHEET_ID'));
 var CLIENT_ID = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_ID');
 var CLIENT_SECRET = SCRIPT_PROPS.getProperty('STRAVA_CLIENT_SECRET');
 var PREV_YEAR_TAB = 'Previous Year';
+var DATA_VARIABLES = ['CreatedAt', 'ActivityType', 'DistanceMeters', 'ElapsedTimeInSeconds', 
+                  'MovingTimeInSeconds', 'MovingDuration', 'TotalElevationGain', 
+                  'ActivityID', 'WeekStart', 'WeekEnd', 'WorkoutType'];
 
 // Main functions
 // ---------------------------------------------------------------------------------
 // These are high-level actions and the functions called by Triggers
 
-function clearSheet() {
+function createPreviousYearSheet() {
+  // Create a brand new sheet for storing Strava activity data from the previous 12-months
+  //
+  var sheetName = PREV_YEAR_TAB;
+  var columns = DATA_VARIABLES;
+  var columnWidth = 200;  // in pixels
+  var popFunc = 'updatePrevYearSheet_';
+
+  var sheet = SPREADSHEET.getSheetByName(sheetName);
+  if (!sheet) {    
+    // Create and format sheet
+    var sheet = SPREADSHEET.insertSheet();    
+    sheet.setName(sheetName)
+         .setColumnWidths(1, columns.length, columnWidth)
+    sheet.deleteColumns(columns.length + 1, sheet.getMaxColumns() - columns.length);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, columns.length)
+         .setValues([DATA_VARIABLES])
+         .setFontWeight("bold")
+         .setBackground('#6495ED')  // Cornflower blue
+         .setFontColor('#ffffff');  // White
+
+    // Set trigger
+    var triggers = ScriptApp.getProjectTriggers().filter(function(trig) {
+      return (trig.getHandlerFunction() === popFunc);
+    });
+    
+    if (triggers.length) {
+      throw new Error('A trigger for ' + popFunc + ' already exists. Delete this trigger first.');
+    } else {
+      // set trigger
+      ScriptApp.newTrigger(popFunc)
+        .timeBased()
+        .atHour(0)
+        .nearMinute(0)
+        .everyDays(1)
+        .create();
+    }
+
+    // Populate newly created sheet
+    getLastYearActivities_(sheetName);
+    
+    // Resolve activity fragments
+    resolveActivityFragments_(sheetName)
+
+  } else {
+    throw new Error(sheetName + ' already exists');
+  }
+}
+
+function updatePrevYearSheet_() {
+  // Append activities that happened after yesterday at mightnight to a
+  // spreadsheet tab. Use this function in a time-based trigger.
+  var yesterday = new Date().incDate(-1);
+  yesterday.setHours(0, 0, 0);  // Set time to yesterday at precisely midnight
+  return appendActivities_(yesterday, PREV_YEAR_TAB);
+  
+  pruneOldRecords_(PREV_YEAR_TAB);
+}
+
+function clearSheet_() {
   // Removes all data, excluding the sheet header, from the PREV_YEAR_TAB.
   
   var sheet = SPREADSHEET.getSheetByName(PREV_YEAR_TAB);
@@ -25,32 +88,26 @@ function clearSheet() {
   sheet.deleteRows(rowPosition, howMany);
 }
 
-function getAllActivities() {
+function getLastYearActivities_(sheet) {
   // Populates an entire sheet with data straight from the Strava Activities API with
   // activities after the date specified in the variable `startDate`.
+  //
+  // Params:
+  //   * sheet {Sheet} the instance of the Sheet class to populate
+  //
   
-  var december = 11;  // Months are zero-indexed
-  var startDate = new Date(2018, december, 1);
+  var now = new Date();
+  var startDate = new Date(now.setFullYear(now.getFullYear() - 1));
   
-  return appendActivities(startDate);
+  return appendActivities_(startDate, sheet);
 }
 
-function getYesterdaysActivities() {
-  // Append activities that happened after yesterday at mightnight to a
-  // spreadsheet tab. Use this function in a time-based trigger.
-  
-  var yesterday = new Date().incDate(-1);
-  yesterday.setHours(0, 0, 0);  // Set time to yesterday at precisely midnight
-  
-  return appendActivities(yesterday);
-}
-
-function appendActivities(startDate) {
+function appendActivities_(startDate, sheet) {
   // Make a request to the Strava API's athlete activity list endpoint 
   // and append each of those activities as rows in the spreadsheet.
 
   var resultsPerPage = 100;
-  var sheet = SPREADSHEET.getSheetByName(PREV_YEAR_TAB);
+  var sheet = SPREADSHEET.getSheetByName(sheet);
   var i = 0;
   var res, body;
   do {
@@ -74,14 +131,14 @@ function appendActivities(startDate) {
   
 }
 
-function pruneOldRecords() {
+function pruneOldRecords_(sheetName) {
   // Remove records from the `PREV_YEAR_TAB` sheet older than one year.
   //
   // @TODO: sort sheet before performing this procedure. For correctness, this 
   // algorithm currently assumes that rows are ordered sequentially in ascending 
   // order by creation date. So if you sort the sheet it's not going to work. 
   
-  var sheet = SPREADSHEET.getSheetByName(PREV_YEAR_TAB);
+  var sheet = SPREADSHEET.getSheetByName(sheetName);
 
   // Set a threshold that's the beginning of the week for one year ago today
   var threshold = new Date().minusYears(1).getWeekStart();
@@ -106,7 +163,7 @@ function pruneOldRecords() {
   
 }
 
-function resolveActivityFragments() {
+function resolveActivityFragments_(sheetName) {
   // Combine multiple activities that are actually one activity. 
   //
   // Note: I often save an activity when I change shoes for a workout
@@ -115,7 +172,7 @@ function resolveActivityFragments() {
   
   var threshold = 3.6e+6 // 60 minutes in milliseconds
   var offset = 2;
-  var sheet = SPREADSHEET.getSheetByName(PREV_YEAR_TAB);
+  var sheet = SPREADSHEET.getSheetByName(sheetName);
   
   var rows = sheet.getRange('A2:K').getValues();
   var rowsDeleted = 0;
