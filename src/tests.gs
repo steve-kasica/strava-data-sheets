@@ -74,7 +74,7 @@ var tests = [
     'Parse Created Date', 
     'Strava\'s datetime format is converted to a JavaScript date object',
     function() {
-      var activity = new Activity(sampleActivity);
+      var activity = new Activity_(sampleActivity);
       var out = activity.properties.CreatedAt;
       if (!isNaN(Date.parse(out))) {
         this.isSuccess = true;

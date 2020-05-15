@@ -120,7 +120,7 @@ function appendActivities_(startDate, sheet) {
     body = JSON.parse(res.getContentText());
     body.map(function(obj) {
       // Subset activity object data and export as array
-      return new Activity(obj).toRow();
+      return new Activity_(obj).toRow();
     }).forEach(function(row) {
       // Add "new" data to the appropriate sheet    
       sheet.appendRow(row);    
@@ -179,11 +179,11 @@ function resolveActivityFragments_(sheetName) {
   
   findDupes(sheet.getRange('A2:B').getValues(), 3.6e+6).forEach(function(dupes) {
     dupes = dupes.map(function(dupe) { return dupe - offset; });  // Numbers are now indices into rows array
-    var parentAct = new Activity(rows[dupes[0]]);
+    var parentAct = new Activity_(rows[dupes[0]]);
     var childAct;
     
     for (var i = 1; i < dupes.length; i++) {
-      childAct = new Activity(rows[dupes[i]]);
+      childAct = new Activity_(rows[dupes[i]]);
       if (childAct.properties[childAct.columns[10]] !== 'Race') {
         parentAct.merge(childAct);
       }
