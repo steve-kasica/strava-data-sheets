@@ -246,8 +246,6 @@ function createPreviousYearSheet() {
     // Populate newly created sheet
     getLastYearActivities_(sheetName);
     
-    // Resolve activity fragments
-    resolveActivityFragments_(sheetName)
 
   } else {
     throw new Error(sheetName + ' already exists');
@@ -348,13 +346,14 @@ function pruneOldRecords_(sheetName) {
   
 }
 
-function resolveActivityFragments_(sheetName) {
+function resolveActivityFragments() {
   // Combine multiple activities that are actually one activity. 
   //
   // Note: I often save an activity when I change shoes for a workout
   // This function will combine multiple Strava activites that were
   // saved close together into one row in the spreadsheet.
   
+  var sheetName = PREV_YEAR_TAB;
   var threshold = 3.6e+6 // 60 minutes in milliseconds
   var offset = 2;
   var sheet = SPREADSHEET.getSheetByName(sheetName);
