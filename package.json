@@ -1,6 +1,6 @@
 {
   "name": "strava-data",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Export Strava data to Google Sheets using Google Apps Script",
   "main": "index.js",
   "scripts": {
